@@ -94,6 +94,36 @@ __global__ void indexCopyLargeIndex(TensorInfo<T, IndexType> dst,
   }
 }
 
+__device__ void atomicAdd(unsigned char *address, unsigned char val) {
+}
+
+__device__  void atomicAdd(half *address, half val) {
+}
+
+__device__  void atomicAdd(long *address, long val) {
+}
+
+__device__ void atomicAdd(char *address, char val) {
+}
+
+__device__  void atomicAdd(short *address, short val) {
+}
+
+// from CUDA C Programmic Guide
+__device__  void atomicAdd(double *address, double val) {
+  unsigned long long int* address_as_ull = (unsigned long long int*)address;
+  unsigned long long int old = *address_as_ull, assumed;
+
+  do {
+    assumed = old;
+    old = atomicCAS(address_as_ull, assumed,
+                    __double_as_longlong(val +
+                    __longlong_as_double(assumed)));
+
+    // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+  } while (assumed != old);
+}
+
 // We prefer this kernel to avoid reloading index points if the number
 // of indices is a small number.
 // This kernel in fact works for all choices of problem size, but if
