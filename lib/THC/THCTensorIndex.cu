@@ -4,12 +4,12 @@
 #include "THCBlas.h"
 #include "THCTensorCopy.h"
 #include "THCTensorRandom.h"
+#include "THCHalf.h"
 #include "THCApply.cuh"
 #include "THCReduce.cuh"
 #include "THCDeviceUtils.cuh"
 #include "THCNumerics.cuh"
 #include <algorithm> // for std::min
-#include <cuda_fp16.h>
 
 // We prefer this kernel to avoid reloading index points if the number
 // of indices is a small number.
@@ -187,6 +187,7 @@ __device__ void atomicAdd(long *address, long val) {
   AtomicAddIntegerImpl<long, sizeof(long)>()(address, val);
 }
 
+#ifdef CUDA_HALF_TENSOR
 __device__ void atomicAdd(half *address, half val) {
   unsigned int * address_as_ui =
       (unsigned int *) ((char *)address - ((size_t)address & 2));
@@ -203,6 +204,7 @@ __device__ void atomicAdd(half *address, half val) {
     old = atomicCAS(address_as_ui, assumed, old);
    } while (assumed != old);
 }
+#endif
 
 // from CUDA C Programmic Guide
 __device__  void atomicAdd(double *address, double val) {
