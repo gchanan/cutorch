@@ -7,6 +7,7 @@
 #include "THCApply.cuh"
 #include "THCReduce.cuh"
 #include "THCDeviceUtils.cuh"
+#include "THCNumerics.cuh"
 #include <algorithm> // for std::min
 #include <cuda_fp16.h>
 
@@ -103,7 +104,10 @@ struct AtomicAddIntegerImpl<T, 1> {
   __device__ void operator()(T *address, T val) {
     unsigned int * address_as_ui =
         (unsigned int *) (address - ((size_t)address & 3));
-    unsigned int old = *address_as_ui, sum, newval, assumed;
+    unsigned int old = *address_as_ui;
+    unsigned int sum;
+    unsigned int newval;
+    unsigned int assumed;
     unsigned int selectors[] = {0x3214, 0x3240, 0x3410, 0x4210};
     unsigned int sel = selectors[(size_t)address & 3];
 
@@ -121,7 +125,10 @@ struct AtomicAddIntegerImpl<T, 2> {
   __device__ void operator()(T *address, T val) {
     unsigned int * address_as_ui =
         (unsigned int *) ((char *)address - ((size_t)address & 2));
-    unsigned int old = *address_as_ui, sum, newval, assumed;
+    unsigned int old = *address_as_ui;
+    unsigned int sum;
+    unsigned int newval;
+    unsigned int assumed;
 
     do {
       assumed = old;
@@ -136,7 +143,9 @@ template<typename T>
 struct AtomicAddIntegerImpl<T, 4> {
   __device__ void operator()(T *address, T val) {
     unsigned int * address_as_ui = (unsigned int *) (address);
-    unsigned int old = *address_as_ui, newval, assumed;
+    unsigned int old = *address_as_ui;
+    unsigned int newval;
+    unsigned int assumed;
 
     do {
       assumed = old;
@@ -150,7 +159,9 @@ template<typename T>
 struct AtomicAddIntegerImpl<T, 8> {
   __device__ void operator()(T *address, T val) {
     unsigned long long * address_as_ui = (unsigned long long *) (address);
-    unsigned long long old = *address_as_ui, newval, assumed;
+    unsigned long long old = *address_as_ui;
+    unsigned long long newval;
+    unsigned long long assumed;
 
     do {
       assumed = old;
@@ -176,23 +187,18 @@ __device__ void atomicAdd(long *address, long val) {
   AtomicAddIntegerImpl<long, sizeof(long)>()(address, val);
 }
 
-#ifdef CUDA_HALF_INSTRUCTIONS
-#define HALF_ADD(a, b) __hadd(a, b)
-#else
-#define HALF_ADD(a, b) __float2half(__half2float(a) + __half2float(b))
-#endif
-
 __device__ void atomicAdd(half *address, half val) {
   unsigned int * address_as_ui =
       (unsigned int *) ((char *)address - ((size_t)address & 2));
-  unsigned int old = *address_as_ui, assumed;
+  unsigned int old = *address_as_ui;
+  unsigned int assumed;
   half hsum;
 
   do {
     // byte_perm doesn't work with halfs, let's manually memcpy
     assumed = old;
     half *hp = (half *)((char *)(&old) + ((size_t)address & 2));
-    hsum = HALF_ADD(val, *hp);
+    hsum = THCNumerics<half>::add(val, *hp);
     memcpy(hp, &hsum, sizeof(half));
     old = atomicCAS(address_as_ui, assumed, old);
    } while (assumed != old);
@@ -201,7 +207,8 @@ __device__ void atomicAdd(half *address, half val) {
 // from CUDA C Programmic Guide
 __device__  void atomicAdd(double *address, double val) {
   unsigned long long int* address_as_ull = (unsigned long long int*)address;
-  unsigned long long int old = *address_as_ull, assumed;
+  unsigned long long int old = *address_as_ull;
+  unsigned long long int assumed;
 
   do {
     assumed = old;
