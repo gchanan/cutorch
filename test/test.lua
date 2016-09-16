@@ -1521,7 +1521,7 @@ local function testIndexAdd(types, gpu2cpu_map)
    checkMultiDevice(x, 'indexAdd', index, longIndex, src)
 end
 
-function test.indexAddDouble()
+function test.indexAdd()
    testIndexAdd(typenames)
 end
 
