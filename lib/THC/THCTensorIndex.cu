@@ -105,17 +105,15 @@ struct AtomicAddIntegerImpl<T, 1> {
     unsigned int * address_as_ui =
         (unsigned int *) (address - ((size_t)address & 3));
     unsigned int old = *address_as_ui;
+    unsigned int shift = (((size_t)address & 3) * 8);
     unsigned int sum;
-    unsigned int newval;
     unsigned int assumed;
-    unsigned int selectors[] = {0x3214, 0x3240, 0x3410, 0x4210};
-    unsigned int sel = selectors[(size_t)address & 3];
 
     do {
       assumed = old;
-      sum = val +  (T)__byte_perm(old, 0, (size_t)address & 3 | 0x4440);
-      newval = __byte_perm(old, sum, sel);
-      old = atomicCAS(address_as_ui, assumed, newval);
+      sum = val + T((old >> shift) & 0xff);
+      old = (old & ~(0x000000ff << shift)) | (sum << shift);
+      old = atomicCAS(address_as_ui, assumed, old);
     } while (assumed != old);
   }
 };
@@ -132,8 +130,8 @@ struct AtomicAddIntegerImpl<T, 2> {
 
     do {
       assumed = old;
-      sum = val +  (T)__byte_perm(old, 0, ((size_t)address & 2) ? 0x4432 : 0x4410);
-      newval = __byte_perm(old, sum, ((size_t)address & 2) ? 0x5410 : 0x3254);
+      sum = val + (size_t)address & 2 ? T(old >> 16) : T(old & 0xffff);
+      newval = (size_t)address & 2 ? (old & 0xffff) | (sum << 16) : (old & 0xffff0000) | sum;
       old = atomicCAS(address_as_ui, assumed, newval);
     } while (assumed != old);
   }
@@ -193,14 +191,13 @@ __device__ void atomicAdd(half *address, half val) {
       (unsigned int *) ((char *)address - ((size_t)address & 2));
   unsigned int old = *address_as_ui;
   unsigned int assumed;
-  half hsum;
 
   do {
-    // byte_perm doesn't work with halfs, let's manually memcpy
     assumed = old;
-    half *hp = (half *)((char *)(&old) + ((size_t)address & 2));
-    hsum = THCNumerics<half>::add(val, *hp);
-    memcpy(hp, &hsum, sizeof(half));
+    half hsum;
+    hsum.x = (size_t)address & 2 ? (old >> 16) : (old & 0xffff);
+    hsum = THCNumerics<half>::add(hsum, val);
+    old = (size_t)address & 2 ? (old & 0xffff) | (hsum.x << 16) : (old & 0xffff0000) | hsum.x;
     old = atomicCAS(address_as_ui, assumed, old);
    } while (assumed != old);
 }
