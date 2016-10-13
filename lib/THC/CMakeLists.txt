@@ -273,4 +273,7 @@ INSTALL(FILES
           generic/THCTensorIndex.cu
           generic/THCTensorSort.h
           generic/THCTensorSort.cu
+          generic/THCTensorDeviceUtils-inl.h
+          generic/THCTensorDeviceUtils.h
+          generic/THCTensorDeviceUtils.c
           DESTINATION "${THC_INSTALL_INCLUDE_SUBDIR}/THC/generic")
