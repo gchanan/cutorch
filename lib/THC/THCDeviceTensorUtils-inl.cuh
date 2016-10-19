@@ -1,5 +1,3 @@
-#include <limits>
-
 namespace detail {
 
 // Add a layer of SFINAE to support static_assert

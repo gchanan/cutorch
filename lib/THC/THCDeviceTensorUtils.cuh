@@ -3,7 +3,6 @@
 
 #include "THCDeviceTensor.cuh"
 #include "THCTensor.h"
-#include <algorithm>
 #include <limits>
 
 /// Constructs a DeviceTensor initialized from a THCudaTensor by
