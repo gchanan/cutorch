@@ -13,12 +13,20 @@ THC_API void THCTensor_(copyFloat)(THCState *state, THCTensor *self, THFloatTens
 THC_API void THCTensor_(copyDouble)(THCState *state, THCTensor *self, THDoubleTensor *src);
 
 THC_API void THCTensor_(copyCudaByte)(THCState *state, THCTensor *dst, struct THCudaByteTensor *src);
+#ifndef THC_GENERIC_NO_CHAR
 THC_API void THCTensor_(copyCudaChar)(THCState *state, THCTensor *dst, struct THCudaCharTensor *src);
+#endif
+#ifndef THC_GENERIC_NO_SHORT
 THC_API void THCTensor_(copyCudaShort)(THCState *state, THCTensor *dst, struct THCudaShortTensor *src);
+#endif
+#ifndef THC_GENERIC_NO_INT
 THC_API void THCTensor_(copyCudaInt)(THCState *state, THCTensor *dst, struct THCudaIntTensor *src);
+#endif
 THC_API void THCTensor_(copyCudaLong)(THCState *state, THCTensor *dst, struct THCudaLongTensor *src);
 THC_API void THCTensor_(copyCudaFloat)(THCState *state, THCTensor *dst, struct THCudaTensor *src);
+#ifndef THC_GENERIC_NO_DOUBLE
 THC_API void THCTensor_(copyCudaDouble)(THCState *state, THCTensor *dst, struct THCudaDoubleTensor *src);
+#endif
 #ifdef CUDA_HALF_TENSOR
 THC_API void THCTensor_(copyCudaHalf)(THCState *state, THCTensor *dst, struct THCudaHalfTensor *src);
 #endif

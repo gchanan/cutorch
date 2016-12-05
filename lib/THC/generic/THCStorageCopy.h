@@ -15,12 +15,20 @@ THC_API void THCStorage_(copyFloat)(THCState *state, THCStorage *storage, struct
 THC_API void THCStorage_(copyDouble)(THCState *state, THCStorage *storage, struct THDoubleStorage *src);
 
 THC_API void THCStorage_(copyCudaByte)(THCState *state, THCStorage *storage, struct THCudaByteStorage *src);
+#ifndef THC_GENERIC_NO_CHAR
 THC_API void THCStorage_(copyCudaChar)(THCState *state, THCStorage *storage, struct THCudaCharStorage *src);
+#endif
+#ifndef THC_GENERIC_NO_SHORT
 THC_API void THCStorage_(copyCudaShort)(THCState *state, THCStorage *storage, struct THCudaShortStorage *src);
+#endif
+#ifndef THC_GENERIC_NO_INT
 THC_API void THCStorage_(copyCudaInt)(THCState *state, THCStorage *storage, struct THCudaIntStorage *src);
+#endif
 THC_API void THCStorage_(copyCudaLong)(THCState *state, THCStorage *storage, struct THCudaLongStorage *src);
 THC_API void THCStorage_(copyCudaFloat)(THCState *state, THCStorage *storage, struct THCudaStorage *src);
+#ifndef THC_GENERIC_NO_DOUBLE
 THC_API void THCStorage_(copyCudaDouble)(THCState *state, THCStorage *storage, struct THCudaDoubleStorage *src);
+#endif
 #ifdef CUDA_HALF_TENSOR
 THC_API void THCStorage_(copyCudaHalf)(THCState *state, THCStorage *storage, struct THCudaHalfStorage *src);
 #endif

@@ -66,14 +66,22 @@ struct TensorUtils {
     static bool canUse32BitIndexMath(THCState* state, TENSOR_TYPE* t);  \
   }
 
+
 TENSOR_UTILS(THCudaByteTensor, unsigned char, long);
+#ifndef THC_GENERIC_NO_CHAR
 TENSOR_UTILS(THCudaCharTensor, char, long);
+#endif
+#ifndef THC_GENERIC_NO_SHORT
 TENSOR_UTILS(THCudaShortTensor, short, long);
+#endif
+#ifndef THC_GENERIC_NO_INT
 TENSOR_UTILS(THCudaIntTensor, int, long);
+#endif
 TENSOR_UTILS(THCudaLongTensor, long, long);
 TENSOR_UTILS(THCudaTensor, float, float);
+#ifndef THC_GENERIC_NO_DOUBLE
 TENSOR_UTILS(THCudaDoubleTensor, double, double);
-
+#endif
 #ifdef CUDA_HALF_TENSOR
 TENSOR_UTILS(THCudaHalfTensor, half, float);
 #endif
