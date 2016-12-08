@@ -57,6 +57,12 @@ function cutorch.createCudaHostTensor(...)
    return torch.FloatTensor(storage, 1, size:storage())
 end
 
+function cutorch.createCudaHalfHostTensor(...)
+   local size = longTensorSize(...)
+   local storage = torch.HalfStorage(cutorch.CudaHostAllocator, size:prod())
+   return torch.HalfTensor(storage, 1, size:storage())
+end
+
 -- Creates a CudaTensor using the CudaUVAAllocator.
 -- Accepts either a LongStorage or a sequence of numbers.
 local function _createUVATensor(...)
