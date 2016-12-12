@@ -16,8 +16,8 @@ torch.CudaTensor.__tostring__        = torch.FloatTensor.__tostring__
 torch.CudaDoubleStorage.__tostring__ = torch.DoubleStorage.__tostring__
 torch.CudaDoubleTensor.__tostring__  = torch.DoubleTensor.__tostring__
 if cutorch.hasHalf then
-   torch.CudaHalfStorage.__tostring__  = torch.FloatStorage.__tostring__
-   torch.CudaHalfTensor.__tostring__  = torch.FloatTensor.__tostring__
+   torch.CudaHalfStorage.__tostring__  = torch.HalfStorage.__tostring__
+   torch.CudaHalfTensor.__tostring__  = torch.HalfTensor.__tostring__
 end
 
 require('cutorch.Tensor')
@@ -61,6 +61,12 @@ function cutorch.createCudaHalfHostTensor(...)
    local size = longTensorSize(...)
    local storage = torch.HalfStorage(cutorch.CudaHostAllocator, size:prod())
    return torch.HalfTensor(storage, 1, size:storage())
+end
+
+function cutorch.createCudaDoubleHostTensor(...)
+   local size = longTensorSize(...)
+   local storage = torch.DoubleStorage(cutorch.CudaHostAllocator, size:prod())
+   return torch.DoubleTensor(storage, 1, size:storage())
 end
 
 -- Creates a CudaTensor using the CudaUVAAllocator.

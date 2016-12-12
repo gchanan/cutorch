@@ -764,6 +764,38 @@ function test.copyAsync()
                          "Async copy to host failed.")
 end
 
+function test.copyAsyncDouble()
+   local sz = chooseInt(maxsize, 2 * maxsize)
+   local host_tensor = cutorch.createCudaDoubleHostTensor(sz):uniform()
+   local device_tensor = torch.CudaDoubleTensor(sz)
+   device_tensor:copyAsync(host_tensor)
+   cutorch.streamSynchronize(cutorch.getStream())
+   tester:assertTensorEq(host_tensor, device_tensor:double(), 0,
+                         "Async copy to device failed.")
+
+   device_tensor:uniform()
+   host_tensor:copyAsync(device_tensor)
+   cutorch.streamSynchronize(cutorch.getStream())
+   tester:assertTensorEq(device_tensor:double(), host_tensor, 0,
+                         "Async copy to host failed.")
+end
+
+function test.copyAsyncHalf()
+   local sz = chooseInt(maxsize, 2 * maxsize)
+   local host_tensor = cutorch.createCudaHalfHostTensor(sz):uniform()
+   local device_tensor = torch.CudaHalfTensor(sz)
+   device_tensor:copyAsync(host_tensor)
+   cutorch.streamSynchronize(cutorch.getStream())
+   tester:assertTensorEq(host_tensor:double(), device_tensor:double(), 0,
+                         "Async copy to device failed.")
+
+   device_tensor:uniform()
+   host_tensor:copyAsync(device_tensor)
+   cutorch.streamSynchronize(cutorch.getStream())
+   tester:assertTensorEq(device_tensor:double(), host_tensor:double(), 0,
+                         "Async copy to host failed.")
+end
+
 function test.largeNoncontiguous()
    local x = torch.FloatTensor():randn(20, 1, 60, 60)
    local sz = chooseInt(maxsize, 2 * maxsize)
@@ -2921,6 +2953,25 @@ function test.get_device()
     local tensors = { }
     for i = 1,device_count do
         table.insert(tensors, torch.Tensor():cuda())
+    end
+    -- Unallocated tensors are on device 0
+    for i = 1,device_count do
+       tester:assert(tensors[i]:getDevice() == 0, "unallocated tensor does not have deviceID 0")
+       -- Now allocate it
+       cutorch.setDevice(i)
+       tensors[i]:resize(1, 2, 3)
+       tester:assert(tensors[i]:getDevice() == i, "tensor does not have the correct deviceID")
+       tester:assert(tensors[i]:getDevice() == tensors[i]:storage():getDevice(),
+          "tensor's device id doesn't match its storage's device id")
+    end
+    cutorch.setDevice(1) -- reset device
+end
+
+function test.get_device_double()
+    local device_count = cutorch.getDeviceCount()
+    local tensors = { }
+    for i = 1,device_count do
+        table.insert(tensors, torch.Tensor():cudaDouble())
     end
     -- Unallocated tensors are on device 0
     for i = 1,device_count do

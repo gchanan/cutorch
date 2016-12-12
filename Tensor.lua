@@ -74,7 +74,8 @@ local CudaTensorTypes = {
    char   = 'torch.CudaCharTensor',
    int    = 'torch.CudaIntTensor',
    short  = 'torch.CudaShortTensor',
-   long   = 'torch.CudaLongTensor'
+   long   = 'torch.CudaLongTensor',
+   half = 'torch.CudaHalfTensor'
 }
 
 for ValueType, CudaTensorType in pairs(CudaTensorTypes) do
@@ -83,8 +84,4 @@ for ValueType, CudaTensorType in pairs(CudaTensorTypes) do
     return host_tensor:totable()
   end
   rawset(torch.getmetatable(CudaTensorType), 'totable', Tensor__totable)
-end
-
-if cutorch.hasHalf then
-   CudaTensorTypes.half = 'torch.CudaHalfTensor'
 end

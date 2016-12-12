@@ -68,6 +68,8 @@ static int cutorch_Storage_(copy)(lua_State *L)
   else if( (src = luaT_toudata(L, 2, "torch.DoubleStorage")) )
     THCStorage_(copyDouble)(state, storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.HalfStorage")) )
+      THCStorage_(copyHalf)(state, storage, src);
+  else if( (src = luaT_toudata(L, 2, "torch.HalfStorage")) )
     THCStorage_(copyHalf)(state, storage, src);
   else
     luaL_typerror(L, 2, "torch.*Storage");
@@ -96,6 +98,8 @@ static int TH_CONCAT_3(cutorch_,Real,Storage_copy)(lua_State *L)
     THStorage_(copyFloat)(storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.DoubleStorage")) )
     THStorage_(copyDouble)(storage, src);
+    else if( (src = luaT_toudata(L, 2, "torch.HalfStorage")) )
+      THStorage_(copyHalf)(storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.CudaStorage")) )
     THStorage_(copyCudaFloat)(cutorch_getstate(L), storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.CudaLongStorage")) )

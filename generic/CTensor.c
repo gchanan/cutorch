@@ -47,6 +47,8 @@ static int cutorch_Tensor_(copy)(lua_State *L)
     THCTensor_(copyFloat)(state, tensor, src);
   else if( (src = luaT_toudata(L, 2, "torch.DoubleTensor")) )
     THCTensor_(copyDouble)(state, tensor, src);
+  else if( (src = luaT_toudata(L, 2, "torch.HalfTensor")) )
+    THCTensor_(copyHalf)(state, tensor, src);
   else
     luaL_typerror(L, 2, "torch.*Tensor");
 
@@ -92,6 +94,8 @@ static int TH_CONCAT_3(cutorch_,Real,Tensor_copy)(lua_State *L)
     THTensor_(copyFloat)(tensor, src);
   else if( (src = luaT_toudata(L, 2, "torch.DoubleTensor")) )
     THTensor_(copyDouble)(tensor, src);
+  else if( (src = luaT_toudata(L, 2, "torch.HalfTensor")) )
+    THTensor_(copyHalf)(tensor, src);
   else if( (src = luaT_toudata(L, 2, "torch.CudaByteTensor")) )
     THTensor_(copyCudaByte)(cutorch_getstate(L), tensor, src);
   else if( (src = luaT_toudata(L, 2, "torch.CudaCharTensor")) )
