@@ -4,7 +4,6 @@
 
 /* specific methods */
 
-#ifndef THC_REAL_IS_HALF
 void THCTensor_(copyCPU)(THCState *state, THCTensor *self, struct THTensor *src)
 {
   THArgCheck(THCTensor_(nElement)(state, self) == THTensor_(nElement)(src), 2, "sizes do not match");
@@ -22,9 +21,7 @@ void THCTensor_(copyCPU)(THCState *state, THCTensor *self, struct THTensor *src)
     THCTensor_(freeCopyTo)(state, selfc, self);
   }
 }
-#endif
 
-#ifndef THC_REAL_IS_HALF
 #define IMPLEMENT_TH_CUDA_TENSOR_COPY(TYPEC)                            \
 void THCTensor_(copy##TYPEC)(THCState *state, THCTensor *self, struct TH##TYPEC##Tensor *src)                \
 {                                                                       \
@@ -42,19 +39,6 @@ void THCTensor_(copy##TYPEC)(THCState *state, THCTensor *self, struct TH##TYPEC#
     THTensor_(free)(srcf);                                              \
   }                                                                     \
 }
-#else
-#define IMPLEMENT_TH_CUDA_TENSOR_COPY(TYPEC)                            \
-void THCTensor_(copy##TYPEC)(THCState *state, THCTensor *self, struct TH##TYPEC##Tensor *src)                \
-{                                                                       \
-  THArgCheck(THCTensor_(nElement)(state, self) == TH##TYPEC##Tensor_nElement(src), 2, "sizes do not match"); \
-  THLongStorage *size = TH##TYPEC##Tensor_newSizeOf(src);               \
-  THCudaTensor *buffer = THCudaTensor_newWithSize(state, size, NULL);   \
-  THCudaTensor_copy##TYPEC(state, buffer, src);                         \
-  THCudaHalfTensor_copyCudaFloat(state, self, buffer);                  \
-  THCudaTensor_free(state, buffer);                                     \
-  THLongStorage_free(size);                                             \
-}
-#endif
 
 IMPLEMENT_TH_CUDA_TENSOR_COPY(Byte)
 IMPLEMENT_TH_CUDA_TENSOR_COPY(Char)
@@ -63,6 +47,7 @@ IMPLEMENT_TH_CUDA_TENSOR_COPY(Int)
 IMPLEMENT_TH_CUDA_TENSOR_COPY(Long)
 IMPLEMENT_TH_CUDA_TENSOR_COPY(Float)
 IMPLEMENT_TH_CUDA_TENSOR_COPY(Double)
+IMPLEMENT_TH_CUDA_TENSOR_COPY(Half)
 
 /* copyCuda */
 
