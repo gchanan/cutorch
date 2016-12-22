@@ -2,7 +2,7 @@
 #define THC_GENERIC_FILE "generic/CStorage.c"
 #else
 
-#include "THCHalf.h"
+#include "THHalf.h"
 
 /* everything is as the generic Storage.c, except few things (see below) */
 
@@ -26,7 +26,7 @@
 #define THFile_readRealRaw(file, data, size)                            \
   {                                                                     \
     real *fdata = (real*)THAlloc(sizeof(real)*size);                    \
-    THFile_readCharRaw(file, (char *)fdata, sizeof(real) * size);       \
+    THFile_readHalfRaw(file, (TH_HALF *)fdata, sizeof(real) * size);       \
     THCudaCheck(cudaMemcpy(data, fdata, size * sizeof(real), cudaMemcpyHostToDevice)); \
     THFree(fdata);                                                      \
   }
@@ -35,7 +35,7 @@
   {                                                                     \
     real *fdata = (real*)THAlloc(sizeof(real)*size);                    \
     THCudaCheck(cudaMemcpy(fdata, data, size * sizeof(real), cudaMemcpyDeviceToHost)); \
-    THFile_writeCharRaw(file, (char *)fdata, size * sizeof(real));      \
+    THFile_writeHalfRaw(file, (TH_HALF *)fdata, size * sizeof(real));      \
     THFree(fdata);                                                      \
   }
 #endif
@@ -87,6 +87,8 @@ static int cutorch_Storage_(copy)(lua_State *L)
     THCStorage_(copyFloat)(state, storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.DoubleStorage")) )
     THCStorage_(copyDouble)(state, storage, src);
+  else if( (src = luaT_toudata(L, 2, "torch.HalfStorage")) )
+    THCStorage_(copyHalf)(state, storage, src);
   else
     luaL_typerror(L, 2, "torch.*Storage");
 
@@ -94,7 +96,6 @@ static int cutorch_Storage_(copy)(lua_State *L)
   return 1;
 }
 
-#ifndef THC_REAL_IS_HALF
 static int TH_CONCAT_3(cutorch_,Real,Storage_copy)(lua_State *L)
 {
   THStorage *storage = luaT_checkudata(L, 1, TH_CONCAT_STRING_3(torch.,Real,Storage));
@@ -115,6 +116,8 @@ static int TH_CONCAT_3(cutorch_,Real,Storage_copy)(lua_State *L)
     THStorage_(copyFloat)(storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.DoubleStorage")) )
     THStorage_(copyDouble)(storage, src);
+  else if( (src = luaT_toudata(L, 2, "torch.HalfStorage")) )
+    THStorage_(copyHalf)(storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.CudaStorage")) )
     THStorage_(copyCudaFloat)(cutorch_getstate(L), storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.CudaLongStorage")) )
@@ -139,7 +142,6 @@ static int TH_CONCAT_3(cutorch_,Real,Storage_copy)(lua_State *L)
   lua_settop(L, 1);
   return 1;
 }
-#endif
 
 static int cutorch_Storage_(getDevice)(lua_State *L) {
   THCStorage *storage = luaT_checkudata(L, 1, torch_Storage);
@@ -154,12 +156,10 @@ void cutorch_Storage_(init)(lua_State* L)
 
   // torch_Storage macro is defined in Storage.c produce the CudaTensor types
   // so I have to construct the normal torch types by hand
-#ifndef THC_REAL_IS_HALF
   luaT_pushmetatable(L, TH_CONCAT_STRING_3(torch.,Real,Storage));
   lua_pushcfunction(L, TH_CONCAT_3(cutorch_,Real,Storage_copy));
   lua_setfield(L, -2, "copy");
   lua_pop(L, 1);
-#endif
 
   luaT_pushmetatable(L, torch_Storage);
   lua_pushcfunction(L, cutorch_Storage_(copy));
