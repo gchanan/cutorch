@@ -799,6 +799,7 @@ function test.copyAsync()
       if torch.type(host_tensor) ~= 'torch.HalfTensor' then
          host_tensor = host_tensor:uniform()
       else
+         -- HalfTensor doesn't have math functions defined.
          local copy_tensor = torch[device_type](sz):uniform()
          host_tensor:copy(copy_tensor)
       end
@@ -3226,7 +3227,6 @@ function test.tensorToTable()
       {'CudaIntTensor',    'IntTensor'},
       {'CudaLongTensor',   'LongTensor'},
       {'CudaDoubleTensor', 'DoubleTensor'},
-      {'CudaHalfTensor',   'HalfTensor'}
    }
    if cutorch.hasHalf then
       table.insert(types, {'CudaHalfTensor', 'HalfTensor'})
