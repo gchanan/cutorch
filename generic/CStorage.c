@@ -23,6 +23,9 @@
     THFree(fdata);                                                      \
   }
 #else
+// FixMe: Requires an unsafe conversion in that we convert from cutorch's 'half'
+// to torch's TH_HALF.  These types are required to be defined in the same way
+// (is there some way to enforce this?)
 #define THFile_readRealRaw(file, data, size)                            \
   {                                                                     \
     real *fdata = (real*)THAlloc(sizeof(real)*size);                    \
