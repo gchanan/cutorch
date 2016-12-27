@@ -30,6 +30,8 @@ void THCHalf2Float(THCState *state, float *out, half *in, ptrdiff_t len) {
     in, in + len, out, __half2floatOp());
 }
 
+// FixMe: could call TH_half2float
+// and convert types here, but maybe slower?
 float THC_half2float(half h)
 {
   unsigned sign = ((h.x >> 15) & 1);
