@@ -717,7 +717,7 @@ static int torch_Tensor_(copy)(lua_State *L)
   else if( (src = luaT_toudata(L, 2, "torch.DoubleTensor")) )
     THCTensor_(copyDouble)(state, tensor, src);
   else if( (src = luaT_toudata(L, 2, "torch.HalfTensor")) )
-    THCTensor_(copyDouble)(state, tensor, src);
+    THCTensor_(copyHalf)(state, tensor, src);
   else
     luaL_typerror(L, 2, "torch.*Tensor");
   lua_settop(L, 1);
