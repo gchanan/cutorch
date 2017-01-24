@@ -2,23 +2,15 @@
 #define THC_GENERIC_FILE "generic/CStorage.c"
 #else
 
-#include "THHalf.h"
+#include "THCHalf.h"
 
 /* everything is as the generic Storage.c, except few things (see below) */
 
-// FixMe: Requires an unsafe conversion in that we convert from cutorch's 'half'
-// to torch's THHalf.  These types are required to be defined in the same way
-// (is there some way to enforce this?)
-#ifdef THC_REAL_IS_HALF
-#define THFILE_REAL_CAST(x) (THHalf *)x
-#else
-#define THFILE_REAL_CAST(x) x
-#endif
-
+#ifndef THC_REAL_IS_HALF
 #define THFile_readRealRaw(file, data, size)                            \
   {                                                                     \
     real *fdata = (real*)THAlloc(sizeof(real)*size);                    \
-    TH_CONCAT_3(THFile_read,Real,Raw)(file, THFILE_REAL_CAST(fdata), size);               \
+    TH_CONCAT_3(THFile_read,Real,Raw)(file, fdata, size);               \
     THCudaCheck(cudaMemcpy(data, fdata, size * sizeof(real), cudaMemcpyHostToDevice)); \
     THFree(fdata);                                                      \
   }
@@ -27,15 +19,31 @@
   {                                                                     \
     real *fdata = (real*)THAlloc(sizeof(real)*size);                    \
     THCudaCheck(cudaMemcpy(fdata, data, size * sizeof(real), cudaMemcpyDeviceToHost)); \
-    TH_CONCAT_3(THFile_write,Real,Raw)(file, THFILE_REAL_CAST(fdata), size);              \
+    TH_CONCAT_3(THFile_write,Real,Raw)(file, fdata, size);              \
     THFree(fdata);                                                      \
   }
+#else
+#define THFile_readRealRaw(file, data, size)                            \
+  {                                                                     \
+    real *fdata = (real*)THAlloc(sizeof(real)*size);                    \
+    THFile_readCharRaw(file, (char *)fdata, sizeof(real) * size);       \
+    THCudaCheck(cudaMemcpy(data, fdata, size * sizeof(real), cudaMemcpyHostToDevice)); \
+    THFree(fdata);                                                      \
+  }
+
+#define THFile_writeRealRaw(file, data, size)                           \
+  {                                                                     \
+    real *fdata = (real*)THAlloc(sizeof(real)*size);                    \
+    THCudaCheck(cudaMemcpy(fdata, data, size * sizeof(real), cudaMemcpyDeviceToHost)); \
+    THFile_writeCharRaw(file, (char *)fdata, size * sizeof(real));      \
+    THFree(fdata);                                                      \
+  }
+#endif
 
 #define TH_GENERIC_FILE "generic/Storage.c"
 #include "generic/Storage.c"
 
 #undef TH_GENERIC_FILE
-#undef THFILE_REAL_CAST
 #undef THFile_readRealRaw
 #undef THFile_writeRealRaw
 
@@ -79,8 +87,6 @@ static int cutorch_Storage_(copy)(lua_State *L)
     THCStorage_(copyFloat)(state, storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.DoubleStorage")) )
     THCStorage_(copyDouble)(state, storage, src);
-  else if( (src = luaT_toudata(L, 2, "torch.HalfStorage")) )
-    THCStorage_(copyHalf)(state, storage, src);
   else
     luaL_typerror(L, 2, "torch.*Storage");
 
