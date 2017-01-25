@@ -2,7 +2,7 @@
 #define THC_GENERIC_FILE "generic/CStorage.c"
 #else
 
-#include "THHalf.h"
+#include "THCHalf.h"
 
 /* everything is as the generic Storage.c, except few things (see below) */
 
