@@ -2,6 +2,8 @@
 #define THC_GENERIC_FILE "generic/CTensorCopy.c"
 #else
 
+#include "THCHalf.h"
+
 static int TH_CONCAT_3(cutorch_,Real,Tensor_copy)(lua_State *L)
 {
   THTensor *tensor = luaT_checkudata(L, 1, TH_CONCAT_STRING_3(torch.,Real,Tensor));

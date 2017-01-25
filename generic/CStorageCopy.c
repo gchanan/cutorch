@@ -2,7 +2,7 @@
 #define THC_GENERIC_FILE "generic/CStorageCopy.c"
 #else
 
-#include "THHalf.h"
+#include "THCHalf.h"
 
 static int TH_CONCAT_3(cutorch_,Real,Storage_copy)(lua_State *L)
 {
