@@ -1040,7 +1040,7 @@ int luaopen_libcutorch(lua_State *L)
 #ifdef CUDA_HALF_TENSOR
   cutorch_CudaHalfStorage_init(L);
 #else
-  cutorch_HalfStorageCopy_init(L);
+  //cutorch_HalfStorageCopy_init(L);
 #endif
 
   cutorch_CudaByteTensor_init(L);
@@ -1053,7 +1053,7 @@ int luaopen_libcutorch(lua_State *L)
 #ifdef CUDA_HALF_TENSOR
   cutorch_CudaHalfTensor_init(L);
 #else
-  cutorch_HalfTensorCopy_init(L);
+  //cutorch_HalfTensorCopy_init(L);
 #endif
 
   cutorch_CudaByteTensorOperator_init(L);
