@@ -1,5 +1,5 @@
-#ifndef THC_GENERIC_FILE
-#define THC_GENERIC_FILE "generic/CTensorCopy.c"
+#ifndef TH_GENERIC_FILE
+#define TH_GENERIC_FILE "generic/CTensorCopy.c"
 #else
 
 static int TH_CONCAT_3(cutorch_,Real,Tensor_copy)(lua_State *L)

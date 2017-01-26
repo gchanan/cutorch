@@ -74,6 +74,10 @@ static int cutorch_Tensor_(copyAsyncCPU)(lua_State *L)
 #undef STRINGIFY_TENSOR
 }
 
+#define TH_GENERIC_FILE "generic/CTensorCopy.c"
+#include "generic/CTensorCopy.c"
+#undef TH_GENERIC_FILE
+
 static int TH_CONCAT_3(cutorch_,Real,Tensor_copyAsyncCuda)(lua_State *L)
 {
 #define STRINGIFY_TENSOR(x) TH_CONCAT_STRING_3(torch.,x,Tensor)

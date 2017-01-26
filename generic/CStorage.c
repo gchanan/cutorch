@@ -88,6 +88,11 @@ static int cutorch_Storage_(copy)(lua_State *L)
   return 1;
 }
 
+#define TH_GENERIC_FILE "generic/CStorageCopy.c"
+#include "generic/CStorageCopy.c"
+
+#undef TH_GENERIC_FILE
+
 static int cutorch_Storage_(getDevice)(lua_State *L) {
   THCStorage *storage = luaT_checkudata(L, 1, torch_Storage);
   lua_pushinteger(L, THCStorage_(getDevice)(cutorch_getstate(L), storage) + 1);

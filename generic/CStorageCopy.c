@@ -1,8 +1,6 @@
-#ifndef THC_GENERIC_FILE
-#define THC_GENERIC_FILE "generic/CStorageCopy.c"
+#ifndef TH_GENERIC_FILE
+#define TH_GENERIC_FILE "generic/CStorageCopy.c"
 #else
-
-#include "THHalf.h"
 
 static int TH_CONCAT_3(cutorch_,Real,Storage_copy)(lua_State *L)
 {
