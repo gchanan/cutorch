@@ -106,7 +106,9 @@ void cutorch_Storage_(init)(lua_State* L)
   torch_Storage_(init)(L);
 
   // Register this even though it is generated elsewhere.
+#ifndef THC_REAL_IS_HALF
   cutorch_StorageCopy_(init)(L);
+#endif
 
   luaT_pushmetatable(L, torch_Storage);
   lua_pushcfunction(L, cutorch_Storage_(copy));
