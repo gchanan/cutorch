@@ -94,7 +94,6 @@ static int cutorch_Storage_(copy)(lua_State *L)
   return 1;
 }
 
-#ifndef THC_REAL_IS_HALF
 static int TH_CONCAT_3(cutorch_,Real,Storage_copy)(lua_State *L)
 {
   THStorage *storage = luaT_checkudata(L, 1, TH_CONCAT_STRING_3(torch.,Real,Storage));
@@ -139,7 +138,6 @@ static int TH_CONCAT_3(cutorch_,Real,Storage_copy)(lua_State *L)
   lua_settop(L, 1);
   return 1;
 }
-#endif
 
 static int cutorch_Storage_(getDevice)(lua_State *L) {
   THCStorage *storage = luaT_checkudata(L, 1, torch_Storage);
@@ -154,12 +152,10 @@ void cutorch_Storage_(init)(lua_State* L)
 
   // torch_Storage macro is defined in Storage.c produce the CudaTensor types
   // so I have to construct the normal torch types by hand
-#ifndef THC_REAL_IS_HALF
   luaT_pushmetatable(L, TH_CONCAT_STRING_3(torch.,Real,Storage));
   lua_pushcfunction(L, TH_CONCAT_3(cutorch_,Real,Storage_copy));
   lua_setfield(L, -2, "copy");
   lua_pop(L, 1);
-#endif
 
   luaT_pushmetatable(L, torch_Storage);
   lua_pushcfunction(L, cutorch_Storage_(copy));
