@@ -2,7 +2,7 @@
 #define THC_GENERIC_FILE "generic/CStorageCopy.c"
 #else
 
-#include "THHalf.h"
+#ifndef THC_REAL_IS_HALF
 
 static int TH_CONCAT_3(cutorch_,Real,Storage_copy)(lua_State *L)
 {
@@ -24,8 +24,8 @@ static int TH_CONCAT_3(cutorch_,Real,Storage_copy)(lua_State *L)
     THStorage_(copyFloat)(storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.DoubleStorage")) )
     THStorage_(copyDouble)(storage, src);
-  else if( (src = luaT_toudata(L, 2, "torch.HalfStorage")) )
-    THStorage_(copyHalf)(storage, src);
+  //else if( (src = luaT_toudata(L, 2, "torch.HalfStorage")) )
+  //  THStorage_(copyHalf)(storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.CudaStorage")) )
     THStorage_(copyCudaFloat)(cutorch_getstate(L), storage, src);
   else if( (src = luaT_toudata(L, 2, "torch.CudaLongStorage")) )
@@ -61,4 +61,5 @@ void cutorch_StorageCopy_(init)(lua_State* L)
   lua_pop(L, 1);
 }
 
+#endif
 #endif
