@@ -150,12 +150,17 @@ void cutorch_Storage_(init)(lua_State* L)
   /* the standard stuff */
   torch_Storage_(init)(L);
 
+//#ifndef THC_REAL_IS_HALF
   // torch_Storage macro is defined in Storage.c produce the CudaTensor types
   // so I have to construct the normal torch types by hand
-  luaT_pushmetatable(L, TH_CONCAT_STRING_3(torch.,Real,Storage));
+  printf("About to push %s %s\n", TH_CONCAT_STRING_3(torch.,Real,Storage), TH_CONCAT_STRING_3(cutorch_,Real,Storage_copy));
+  int ans = luaT_pushmetatable(L, TH_CONCAT_STRING_3(torch.,Real,Storage));
+  printf("Done push metatable %d\n", ans);
   lua_pushcfunction(L, TH_CONCAT_3(cutorch_,Real,Storage_copy));
+  printf("Done push cfunc\n");
   lua_setfield(L, -2, "copy");
   lua_pop(L, 1);
+//#endif
 
   luaT_pushmetatable(L, torch_Storage);
   lua_pushcfunction(L, cutorch_Storage_(copy));
