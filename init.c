@@ -1034,6 +1034,7 @@ int luaopen_libcutorch(lua_State *L)
   cutorch_CudaStorage_init(L);
   cutorch_CudaDoubleStorage_init(L);
 #ifdef CUDA_HALF_TENSOR
+  printf("Calling CudaHalfStorage_init\n");
   cutorch_CudaHalfStorage_init(L);
 #endif
 
