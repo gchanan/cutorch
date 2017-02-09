@@ -2,6 +2,7 @@
 
 #include <cuda_runtime_api.h>
 #include <deque>
+#include <list>
 #include <mutex>
 #include <set>
 #include <stdint.h>
@@ -41,11 +42,22 @@ struct HostAllocator
 {
   typedef bool (*Comparison)(const BlockSize&, const BlockSize&);
 
-  // lock around all operations
+  // lock around blocks and available collections
   std::mutex mutex;
+
+  // lock around cuda_events collections
+  std::mutex cuda_events_mutex;
+
+  // lock to ensure one thread is processing events -- if we just used
+  // cuda_events_mutex, another thread could be inserting and we wouldn't
+  // be guaranteed to make forward progress
+  std::mutex events_loop_mutex;
 
   // blocks by pointer
   std::unordered_map<void*, Block> blocks;
+
+  // used as a dummy reference since references can't be null
+  Block dummy_block_ref = {0, NULL, true};
 
   // pointers that are ready to be allocated (event_count=0)
   std::set<BlockSize, Comparison> available;
@@ -57,13 +69,13 @@ struct HostAllocator
 
   cudaError_t malloc(void** ptr, size_t size)
   {
-    std::lock_guard<std::mutex> lock(mutex);
-
     // process outstanding cuda events which may have occurred
-    cudaError_t err = processEvents();
+    cudaError_t err = processEvents(true);
     if (err != cudaSuccess) {
       return err;
     }
+
+    std::lock_guard<std::mutex> lock(mutex);
 
     // search for the smallest block which can hold this allocation
     BlockSize search_key(size);
@@ -92,11 +104,11 @@ struct HostAllocator
 
   cudaError_t free(void* ptr)
   {
-    std::lock_guard<std::mutex> lock(mutex);
-
     if (!ptr) {
       return cudaSuccess;
     }
+
+    std::lock_guard<std::mutex> lock(mutex);
 
     auto it = blocks.find(ptr);
     THAssert(it != blocks.end());
@@ -114,75 +126,123 @@ struct HostAllocator
 
   cudaError_t recordEvent(void* ptr, cudaStream_t stream)
   {
-    std::lock_guard<std::mutex> lock(mutex);
-    cudaError_t err;
+    Block &block = dummy_block_ref;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
 
-    auto it = blocks.find(ptr);
-    if (it == blocks.end()) {
-      // ignore events for untracked pointers
-      return cudaSuccess;
+      auto it = blocks.find(ptr);
+      if (it == blocks.end()) {
+        // ignore events for untracked pointers
+        return cudaSuccess;
+      }
+
+      block = it->second;
+      THAssert(block.allocated);
+      // ensure the block will not be reused until after we are complete
+      block.event_count++;
     }
 
-    Block& block = it->second;
-    THAssert(block.allocated);
+    // we are done with the block (unless there is an error and we need to
+    // rewind), so we can drop the main mutex.
+    cudaError_t err = cudaSuccess;
+    do {
+      // process outstanding cuda events which may have occurred
+      err = processEvents(false);
+      if (err != cudaSuccess) {
+        break;
+      }
 
-    // process outstanding cuda events which may have occurred
-    err = processEvents();
+      // create and record an event in the given stream
+      cudaEvent_t event;
+      err = cudaEventCreateWithFlags(&event, cudaEventDisableTiming);
+      if (err != cudaSuccess) {
+        break;
+      }
+      err = cudaEventRecord(event, stream);
+      if (err != cudaSuccess) {
+        break;
+      }
+
+      // enter event, need to hold cuda_events_mutex, but not main mutex.
+      std::lock_guard<std::mutex> cuda_event_lock(cuda_events_mutex);
+      cuda_events.emplace_back(event, ptr);
+    } while (false);
+
     if (err != cudaSuccess) {
-      return err;
+      std::lock_guard<std::mutex> lock(mutex);
+      block.event_count--;
+      if (block.event_count == 0 && !block.allocated) {
+        available.insert(block);
+      }
     }
-
-    // create and record an event in the given stream
-    cudaEvent_t event;
-    err = cudaEventCreateWithFlags(&event, cudaEventDisableTiming);
-    if (err != cudaSuccess) {
-      return err;
-    }
-    err = cudaEventRecord(event, stream);
-    if (err != cudaSuccess) {
-      return err;
-    }
-
-    // the block will not be re-used until all associated events have occured
-    block.event_count++;
-    cuda_events.emplace_back(event, ptr);
-    return cudaSuccess;
+    return err;
   }
 
-  cudaError_t processEvents()
+  cudaError_t processEvents(bool wait)
   {
     // Process outstanding cudaEvents. Events that are completed are removed
     // from the queue, and the 'event_count' for the corresponding allocation
     // is decremented. Stops at the first event which has not been completed.
     // Since events on different devices or streams may occur out of order,
     // the processing of some events may be delayed.
-    while (!cuda_events.empty()) {
-      auto& e = cuda_events.front();
-      cudaEvent_t event = e.first;
 
-      cudaError_t err = cudaEventQuery(event);
-      if (err == cudaErrorNotReady) {
-        break;
-      } else if (err != cudaSuccess) {
-        return err;
-      }
-      err = cudaEventDestroy(event);
-      if (err != cudaSuccess) {
-        return err;
-      }
-
-      Block& block = blocks.at(e.second);
-      block.event_count--;
-      if (block.event_count == 0 && !block.allocated) {
-        available.insert(block);
-      }
-      cuda_events.pop_front();
+    // if not waiting, just try to grab events loop mutex once and give up
+    // if we can't acquire it
+    if (wait) {
+      events_loop_mutex.lock();
+    } else if (!events_loop_mutex.try_lock()) {
+      return cudaSuccess;
     }
-    return cudaSuccess;
+
+    // cudaEventDestroy is slow, do them outside of lock
+    std::list<cudaEvent_t> events_to_destroy;
+    cudaError_t err_ret = cudaSuccess;
+    {
+      std::lock_guard<std::mutex> loop_lock(events_loop_mutex, std::adopt_lock);
+      std::lock_guard<std::mutex> cuda_event_lock(cuda_events_mutex);
+      while (!cuda_events.empty()) {
+        auto& e = cuda_events.front();
+        cudaEvent_t event = e.first;
+
+        cudaError_t err = cudaEventQuery(event);
+        if (err == cudaErrorNotReady) {
+          break;
+        } else if (err != cudaSuccess) {
+          err_ret = err;
+          break;
+        }
+
+        events_to_destroy.emplace_back(event);
+        {
+          std::lock_guard<std::mutex> lock(mutex);
+          Block& block = blocks.at(e.second);
+
+          block.event_count--;
+          if (block.event_count == 0 && !block.allocated) {
+            available.insert(block);
+          }
+        }
+        cuda_events.pop_front();
+      }
+    }
+
+    // now we can detroy events outside of loop
+    for (auto event : events_to_destroy) {
+      cudaError_t err = cudaEventDestroy(event);
+
+      // continue destroying even though a single event failed,
+      // but return first error
+      if (err != cudaSuccess && err_ret != cudaSuccess) {
+        err_ret = err;
+      }
+    }
+    return err_ret;
   }
 
   void emptyCache()
   {
+    // event loop acquires locks in this order, so we must as well
+    std::lock_guard<std::mutex> cuda_event_lock(cuda_events_mutex);
     std::lock_guard<std::mutex> lock(mutex);
 
     // remove events for freed blocks
